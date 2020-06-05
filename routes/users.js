@@ -18,7 +18,9 @@ const checkJwt = jwt({
 });
 
 /* ------------- Begin Controller Functions ------------- */
-router.get("/:owner_id/boats", checkJwt, (req, res) => {
+router.get("/", (req, res) => {});
+
+router.get("/:user_id/computers", checkJwt, (req, res) => {
   let statusCode = 401;
   if (req.user && req.user.sub) {
     statusCode = 200;
@@ -29,6 +31,7 @@ router.get("/:owner_id/boats", checkJwt, (req, res) => {
     res.status(statusCode).end();
   }
 });
+
 /* ------------- End Controller Functions ------------- */
 
 module.exports = router;

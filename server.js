@@ -2,11 +2,11 @@ const path = require("path");
 const express = require("express");
 const session = require("express-session");
 
-const { BOATS_PATH, OWNERS_PATH } = require("./config");
+const { BOATS_PATH, USERS_PATH } = require("./config");
 
 const indexRouter = require("./routes/index");
 const boatsRouter = require("./routes/boats");
-const ownersRouter = require("./routes/owners");
+const usersRouter = require("./routes/users");
 
 const server = express();
 
@@ -26,7 +26,7 @@ server.use(session(expressSession));
 
 server.use("/", indexRouter);
 server.use(BOATS_PATH, boatsRouter);
-server.use(OWNERS_PATH, ownersRouter);
+server.use(USERS_PATH, usersRouter);
 
 server.use((err, req, res, next) => {
   if (err.name === "UnauthorizedError") {

@@ -5,5 +5,5 @@ module.exports = {
   CLIENT_SECRET:
     "1btdJDXf7ovAs6Otg9pM7uk19waZB-ccBtTPW3JuS1uc_HFCNaV7vB-ejKbkyhiK",
   DOMAIN: "hamiltj2.auth0.com",
-  OWNERS_PATH: "/owners",
+  USERS_PATH: "/users",
 };
