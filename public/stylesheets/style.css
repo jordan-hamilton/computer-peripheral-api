@@ -1,0 +1,12 @@
+.fa-sign-in-alt, .fa-user-plus {
+  margin-left: 0.5rem;
+}
+
+.jwt {
+  word-wrap: break-word;
+}
+
+textarea {
+  position: absolute;
+  left: -100%;
+}
