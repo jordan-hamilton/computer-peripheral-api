@@ -1,31 +1,20 @@
-var express = require("express");
-var router = express.Router();
-const jwt = require("express-jwt");
-const jwksRsa = require("jwks-rsa");
+const express = require("express");
+const router = express.Router();
 
-const boats = require("../api/boats");
-const { DOMAIN } = require("../config.js");
-
-const checkJwt = jwt({
-  secret: jwksRsa.expressJwtSecret({
-    cache: true,
-    rateLimit: true,
-    jwksRequestsPerMinute: 5,
-    jwksUri: `https://${DOMAIN}/.well-known/jwks.json`,
-  }),
-  issuer: `https://${DOMAIN}/`,
-  algorithms: ["RS256"],
-});
+const { checkJwt, DOMAIN } = require("../config");
+const users = require("../api/users");
 
 /* ------------- Begin Controller Functions ------------- */
-router.get("/", (req, res) => {});
+router.get("/", (req, res) => {
+  users.get_all().then((data) => res.status(200).json(data));
+});
 
 router.get("/:user_id/computers", checkJwt, (req, res) => {
   let statusCode = 401;
   if (req.user && req.user.sub) {
     statusCode = 200;
     boats
-      .get_by_property("owner", req.user.sub)
+      .get_by_property("user", req.user.sub)
       .then((data) => res.status(200).json(data));
   } else {
     res.status(statusCode).end();

@@ -2,10 +2,11 @@ const path = require("path");
 const express = require("express");
 const session = require("express-session");
 
-const { BOATS_PATH, USERS_PATH } = require("./config");
+const { COMPUTERS_PATH, PERIPHERALS_PATH, USERS_PATH } = require("./config");
 
 const indexRouter = require("./routes/index");
-const boatsRouter = require("./routes/boats");
+const computersRouter = require("./routes/computers");
+const peripheralsRouter = require("./routes/peripherals");
 const usersRouter = require("./routes/users");
 
 const server = express();
@@ -25,7 +26,7 @@ const expressSession = {
 server.use(session(expressSession));
 
 server.use("/", indexRouter);
-server.use(BOATS_PATH, boatsRouter);
+server.use(COMPUTERS_PATH, computersRouter);
 server.use(USERS_PATH, usersRouter);
 
 server.use((err, req, res, next) => {

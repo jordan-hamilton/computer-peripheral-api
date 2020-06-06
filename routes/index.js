@@ -3,8 +3,8 @@ const router = express.Router();
 const path = require("path");
 const jwtDecoder = require("jwt-decode");
 
-const user = require("../api/user");
-const { CLIENT_ID, CLIENT_SECRET, DOMAIN } = require("../config.js");
+const users = require("../api/users");
+const { CLIENT_ID, CLIENT_SECRET, DOMAIN } = require("../config");
 
 /* GET home page. */
 router.get("/", (req, res) => {
@@ -12,7 +12,7 @@ router.get("/", (req, res) => {
 });
 
 router.get("/register", (req, res) => {
-  req.session.state = user.makeId();
+  req.session.state = users.makeId();
 
   const callbackUrl = `${req.protocol}://${req.get("host")}${req.baseUrl}`;
 
@@ -46,7 +46,7 @@ router.post("/login", async (req, res) => {
     client_secret: CLIENT_SECRET,
   };
 
-  const jwt = await user.getJwt(`https://${DOMAIN}/oauth/token`, data);
+  const jwt = await users.getJwt(`https://${DOMAIN}/oauth/token`, data);
 
   if (jwt) {
     req.session.jwt = jwt;
