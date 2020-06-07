@@ -27,6 +27,7 @@ server.use(session(expressSession));
 
 server.use("/", indexRouter);
 server.use(COMPUTERS_PATH, computersRouter);
+server.use(PERIPHERALS_PATH, peripheralsRouter);
 server.use(USERS_PATH, usersRouter);
 
 server.use((err, req, res, next) => {

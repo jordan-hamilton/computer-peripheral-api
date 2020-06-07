@@ -30,13 +30,33 @@ function get_all() {
     .then((entities) => entities[0].map(ds.fromDatastore));
 }
 
-function post_one(name, type, length, owner) {
-  const key = datastore.key(BOAT_KIND);
-  const entity = { name, type, length, owner };
-  return datastore.save({ key: key, data: entity }).then(() => {
-    entity.id = key.id;
-    return entity;
+function get_by_property(propKey, propValue) {
+  let value;
+
+  propKey === "__key__"
+    ? (value = datastore.key([USER_KIND, datastore.int(propValue)]))
+    : (value = propValue);
+
+  const q = datastore.createQuery(USER_KIND).filter(propKey, "=", value);
+  return datastore.runQuery(q).then((data) => {
+    return data[0]
+      ? data[0].map(ds.fromDatastore)
+      : { Error: "No user with this user_id exists" };
   });
+}
+
+async function post_one(userId) {
+  const key = datastore.key(USER_KIND);
+  const entity = { userId };
+
+  const duplicate = await get_by_property("userId", userId);
+
+  return duplicate && duplicate.length
+    ? { Error: "A user with this user_id already exists" }
+    : datastore.save({ key: key, data: entity }).then(() => {
+        entity.id = key.id;
+        return entity;
+      });
 }
 /* ------------- End Model Functions ------------- */
 

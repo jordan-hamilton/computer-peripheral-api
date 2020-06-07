@@ -2,28 +2,50 @@ const express = require("express");
 const router = express.Router();
 
 const computers = require("../api/computers");
-const { checkJwt, DOMAIN } = require("../config");
+const peripherals = require("../api/peripherals");
+
+const { checkJwt, PERIPHERALS_PATH } = require("../config");
 
 /* ------------- Begin Controller Functions ------------- */
 router.get("/", (req, res) => {
-  boats.get_all().then((data) => res.status(200).json(data));
+  computers.get_all(req).then(async (data) => {
+    data.items.map((entity) => {
+      entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+        entity.id
+      }`;
+    });
+
+    for (let entity of data.items) {
+      const children = await peripherals.get_by_property("computer", entity.id);
+      children && children.length
+        ? (entity.peripherals = children.map(({ id }) => ({
+            id,
+            self: `${req.protocol}://${req.get(
+              "host"
+            )}${PERIPHERALS_PATH}/${id}`,
+          })))
+        : (entity.peripherals = []);
+    }
+
+    if (data.next) {
+      data.next = `${req.protocol}://${req.get("host")}${req.baseUrl}?cursor=${
+        data.next
+      }`;
+    }
+
+    res.status(200).json(data);
+  });
 });
 
 router.post("/", checkJwt, (req, res, next) => {
-  let statusCode = 401;
-
-  if (req.user && req.user.sub) {
-    boats
-      .post_one(req.body.name, req.body.type, req.body.length, req.user.sub)
-      .then((entity) => {
-        if (!entity.Error) {
-          statusCode = 201;
-          res.status(statusCode).json(entity);
-        }
-      });
-  } else {
-    res.status(statusCode).end();
-  }
+  computers
+    .post_one(req.body.name, req.body.type, req.body.length, req.user.sub)
+    .then((entity) => {
+      if (!entity.Error) {
+        statusCode = 201;
+        res.status(statusCode).json(entity);
+      }
+    });
 });
 
 router.delete("/:id", checkJwt, async (req, res) => {

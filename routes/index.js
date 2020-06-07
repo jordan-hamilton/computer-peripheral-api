@@ -27,7 +27,7 @@ router.get("/register", (req, res) => {
 });
 
 router.get("/user", async (req, res) => {
-  if (!req.session.jwt) {
+  if (!req.session.jwt || !req.session.userId) {
     res.redirect("/");
   } else {
     res.sendFile("user.html", { root: path.join(__dirname, "../", "public") });
@@ -51,6 +51,7 @@ router.post("/login", async (req, res) => {
   if (jwt) {
     req.session.jwt = jwt;
     req.session.userId = jwtDecoder(jwt).sub;
+    await users.post_one(req.session.userId);
     res.redirect("/user");
   } else {
     res.redirect("/");
@@ -58,7 +59,7 @@ router.post("/login", async (req, res) => {
 });
 
 router.get("/api/user", async (req, res) => {
-  if (req.session.jwt) {
+  if (req.session.jwt && req.session.userId) {
     res.json({
       jwt: req.session.jwt,
       userId: req.session.userId,

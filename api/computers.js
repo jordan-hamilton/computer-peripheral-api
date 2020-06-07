@@ -5,15 +5,33 @@ const { COMPUTER_KIND } = require("../config");
 
 /* ------------- Begin Model Functions ------------- */
 function get_all() {
-  const q = datastore.createQuery(COMPUTER_KIND);
+  const accepts = req.accepts("application/json"); //TODO: update status code
 
-  return datastore
-    .runQuery(q)
-    .then((entities) => entities[0].map(ds.fromDatastore));
+  const results = {};
+  const q = datastore.createQuery(COMPUTER_KIND).limit(5);
+
+  if (req.query && Object.keys(req.query).includes("cursor")) {
+    q.start(req.query.cursor);
+  }
+
+  return datastore.runQuery(q).then((entities) => {
+    results.items = entities[0].map(ds.fromDatastore);
+
+    if (data[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
+      results.next = data[1].endCursor;
+    }
+
+    results.count = -1; // TODO: get unpaginated count
+
+    return results;
+  });
 }
 
 function get_by_property(propKey, propValue) {
+  const accepts = req.accepts("application/json"); //TODO: update status code
   let value;
+
+  //TODO: get relationship to peripherals
 
   propKey === "__key__"
     ? (value = datastore.key([COMPUTER_KIND, datastore.int(propValue)]))
