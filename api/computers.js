@@ -5,8 +5,6 @@ const { COMPUTER_KIND } = require("../config");
 
 /* ------------- Begin Model Functions ------------- */
 function get_all() {
-  const accepts = req.accepts("application/json"); //TODO: update status code
-
   const results = {};
   const q = datastore.createQuery(COMPUTER_KIND).limit(5);
 
@@ -17,8 +15,8 @@ function get_all() {
   return datastore.runQuery(q).then((entities) => {
     results.items = entities[0].map(ds.fromDatastore);
 
-    if (data[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
-      results.next = data[1].endCursor;
+    if (entities[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
+      results.next = entities[1].endCursor;
     }
 
     results.count = -1; // TODO: get unpaginated count
@@ -27,9 +25,9 @@ function get_all() {
   });
 }
 
-function get_by_property(propKey, propValue) {
-  const accepts = req.accepts("application/json"); //TODO: update status code
+function get_by_property(req, propKey, propValue) {
   let value;
+  const results = {};
 
   //TODO: get relationship to peripherals
 
@@ -37,17 +35,32 @@ function get_by_property(propKey, propValue) {
     ? (value = datastore.key([COMPUTER_KIND, datastore.int(propValue)]))
     : (value = propValue);
 
-  const q = datastore.createQuery(COMPUTER_KIND).filter(propKey, "=", value);
-  return datastore.runQuery(q).then((data) => {
-    return data[0]
-      ? data[0].map(ds.fromDatastore)
-      : { Error: "No computer with this computer_id exists" };
+  const q = datastore
+    .createQuery(COMPUTER_KIND)
+    .filter(propKey, "=", value)
+    .limit(5);
+
+  return datastore.runQuery(q).then((entities) => {
+    results.items = entities[0].map(ds.fromDatastore);
+
+    if (entities[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
+      results.next = entities[1].endCursor;
+    }
+
+    results.count = -1; // TODO: get unpaginated count
+
+    return results;
   });
 }
 
-function post_one(name, type, length, owner) {
+function post_one(manufacturer, model, serial_number, user) {
   const key = datastore.key(COMPUTER_KIND);
-  const entity = { name, type, length, owner };
+  const entity = {
+    manufacturer,
+    model,
+    serial_number,
+    user,
+  };
   return datastore.save({ key: key, data: entity }).then(() => {
     entity.id = key.id;
     return entity;

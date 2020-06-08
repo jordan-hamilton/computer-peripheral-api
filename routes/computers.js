@@ -7,8 +7,9 @@ const peripherals = require("../api/peripherals");
 const { checkJwt, PERIPHERALS_PATH } = require("../config");
 
 /* ------------- Begin Controller Functions ------------- */
-router.get("/", (req, res) => {
-  computers.get_all(req).then(async (data) => {
+router.get("/", checkJwt, (req, res) => {
+  const accepts = req.accepts("application/json"); //TODO: update status code
+  computers.get_by_property(req, "user", req.user.sub).then(async (data) => {
     data.items.map((entity) => {
       entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
         entity.id
@@ -39,11 +40,92 @@ router.get("/", (req, res) => {
 
 router.post("/", checkJwt, (req, res, next) => {
   computers
-    .post_one(req.body.name, req.body.type, req.body.length, req.user.sub)
+    .post_one(
+      req.body.manufacturer,
+      req.body.model,
+      req.body.serial_number,
+      req.user.sub
+    )
     .then((entity) => {
       if (!entity.Error) {
-        statusCode = 201;
-        res.status(statusCode).json(entity);
+        res.status(201).json(entity);
+      }
+    });
+});
+
+router.put("/:computer_id/peripherals/:peripheral_id", (req, res) => {
+  peripherals
+    .get_by_property("__key__", req.params.peripheral_id)
+    .then((child_data) => {
+      if (child_data.length !== 1) {
+        res.status(404).json({
+          Error: "The specified computer and/or peripheral don\u2019t exist",
+        });
+      } else {
+        computers
+          .get_by_property(req, "__key__", req.params.computer_id)
+          .then((parent_data) => {
+            if (parent_data.items.length !== 1) {
+              res.status(404).json({
+                Error:
+                  "The specified computer and/or peripheral don\u2019t exist",
+              });
+            } else if (child_data[0].computer) {
+              res.status(403).json({
+                Error:
+                  "The specified peripheral is already assigned to a computer.",
+              });
+            } else {
+              peripherals
+                .update_one(
+                  child_data[0].id,
+                  child_data[0].manufacturer,
+                  child_data[0].type,
+                  child_data[0].serial_number,
+                  parent_data.items[0].id
+                )
+                .then(() => res.status(204).end());
+            }
+          });
+      }
+    });
+});
+
+router.delete("/:computer_id/peripherals/:peripheral_id", (req, res) => {
+  computers
+    .get_by_property("__key__", req.params.computer_id)
+    .then((parent_data) => {
+      if (parent_data.length !== 1) {
+        res.status(404).json({
+          Error:
+            "No computer with this computer_id has a peripheral with this peripheral_id",
+        });
+      } else {
+        peripherals
+          .get_by_property(req.params.peripheral_id)
+          .then((child_data) => {
+            if (child_data.length !== 1) {
+              res.status(404).json({
+                Error:
+                  "No computer with this computer_id has a peripheral with this peripheral_id",
+              });
+            } else {
+              child_data[0].computer !== req.params.computer_id
+                ? res.status(404).json({
+                    Error:
+                      "No computer with this computer_id has a peripheral with this peripheral_id",
+                  })
+                : peripherals
+                    .update_one(
+                      child_data[0].id,
+                      child_data[0].manufacturer,
+                      child_data[0].type,
+                      child_data[0].serial_number,
+                      null
+                    )
+                    .then(() => res.status(204).end());
+            }
+          });
       }
     });
 });

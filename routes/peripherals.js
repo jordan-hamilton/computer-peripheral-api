@@ -1,38 +1,63 @@
 const express = require("express");
 const router = express.Router();
 
-const { checkJwt, DOMAIN } = require("../config");
+const { COMPUTERS_PATH } = require("../config");
 const computers = require("../api/computers");
+const peripherals = require("../api/peripherals");
 
 /* ------------- Begin Controller Functions ------------- */
 router.get("/", (req, res) => {
-  boats.get_all().then((data) => res.status(200).json(data));
-});
+  peripherals.get_all(req).then(async (data) => {
+    data.items.map((entity) => {
+      entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+        entity.id
+      }`;
+    });
 
-router.post("/", checkJwt, (req, res, next) => {
-  let statusCode = 401;
-
-  if (req.user && req.user.sub) {
-    boats
-      .post_one(req.body.name, req.body.type, req.body.length, req.user.sub)
-      .then((entity) => {
-        if (!entity.Error) {
-          statusCode = 201;
-          res.status(statusCode).json(entity);
+    for (let entity of data.items) {
+      if (entity.computer) {
+        const parent = await computers.get_by_property(
+          req,
+          "__key__",
+          entity.computer
+        );
+        if (parent.items && parent.items.length === 1) {
+          entity.computer = (({ id }) => ({
+            id,
+            self: `${req.protocol}://${req.get("host")}${COMPUTERS_PATH}/${id}`,
+          }))(parent.items[0]);
         }
-      });
-  } else {
-    res.status(statusCode).end();
-  }
+      }
+    }
+
+    if (data.next) {
+      data.next = `${req.protocol}://${req.get("host")}${req.baseUrl}?cursor=${
+        data.next
+      }`;
+    }
+
+    res.status(200).json(data);
+  });
 });
 
-router.delete("/:id", checkJwt, async (req, res) => {
+router.post("/", (req, res, next) => {
+  peripherals
+    .post_one(req.body.manufacturer, req.body.type, req.body.serial_number)
+    .then((entity) => {
+      if (!entity.Error) {
+        statusCode = 201;
+        res.status(statusCode).json(entity);
+      }
+    });
+});
+
+router.delete("/:id", async (req, res) => {
   if (req.user && req.user.sub) {
-    const data = await boats.get_by_property("__key__", req.params.id);
+    const data = await peripherals.get_by_property("__key__", req.params.id);
 
     if (data && data.length === 1) {
       if (data[0].owner === req.user.sub) {
-        boats.delete_one(req.params.id).then((data) => {
+        peripherals.delete_one(req.params.id).then((data) => {
           if (data.Error) {
             res.status(403).end();
           } else {
