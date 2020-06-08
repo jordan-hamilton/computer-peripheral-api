@@ -52,6 +52,9 @@ function post_one(manufacturer, type, serial_number) {
 function update_one(id, manufacturer, type, serial_number, computer) {
   const key = datastore.key([PERIPHERAL_KIND, parseInt(id, 10)]);
   const entity = { manufacturer, type, serial_number, computer };
+
+  if (entity.computer === null) delete entity.computer;
+
   return datastore
     .update({ key: key, data: entity })
     .then(() => {

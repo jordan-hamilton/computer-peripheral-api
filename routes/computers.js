@@ -121,16 +121,16 @@ router.put("/:computer_id/peripherals/:peripheral_id", (req, res) => {
 
 router.delete("/:computer_id/peripherals/:peripheral_id", (req, res) => {
   computers
-    .get_by_property("__key__", req.params.computer_id)
+    .get_by_property(req, "__key__", req.params.computer_id)
     .then((parent_data) => {
-      if (parent_data.length !== 1) {
+      if (parent_data.items.length !== 1) {
         res.status(404).json({
           Error:
             "No computer with this computer_id has a peripheral with this peripheral_id",
         });
       } else {
         peripherals
-          .get_by_property(req.params.peripheral_id)
+          .get_by_property("__key__", req.params.peripheral_id)
           .then((child_data) => {
             if (child_data.length !== 1) {
               res.status(404).json({

@@ -81,20 +81,14 @@ router.post("/", (req, res, next) => {
     });
 });
 
-router.delete("/:id", async (req, res) => {
-  const data = await peripherals.get_by_property("__key__", req.params.id);
-
-  if (data && data.length === 1) {
-    peripherals.delete_one(req.params.id).then((data) => {
-      if (data.Error) {
-        res.status(403).end();
-      } else {
-        res.status(204).end();
-      }
-    });
-  } else {
-    res.status(404).end();
-  }
+router.delete("/:id", (req, res) => {
+  peripherals.delete_one(req.params.id).then((data) => {
+    if (data.Error) {
+      res.status(404).end();
+    } else {
+      res.status(204).end();
+    }
+  });
 });
 /* ------------- End Controller Functions ------------- */
 
