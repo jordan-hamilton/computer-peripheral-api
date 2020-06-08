@@ -25,9 +25,7 @@ async function getJwt(url, data) {
 function get_all() {
   const q = datastore.createQuery(USER_KIND);
 
-  return datastore
-    .runQuery(q)
-    .then((entities) => entities[0].map(ds.fromDatastore));
+  return datastore.runQuery(q).then((entities) => entities[0]);
 }
 
 function get_by_property(propKey, propValue) {
@@ -53,10 +51,7 @@ async function post_one(userId) {
 
   return duplicate && duplicate.length
     ? { Error: "A user with this user_id already exists" }
-    : datastore.save({ key: key, data: entity }).then(() => {
-        entity.id = key.id;
-        return entity;
-      });
+    : datastore.save({ key: key, data: entity }).then(() => entity);
 }
 /* ------------- End Model Functions ------------- */
 
