@@ -8,7 +8,7 @@ const { checkJwt, PERIPHERALS_PATH } = require("../config");
 
 /* ------------- Begin Controller Functions ------------- */
 router.get("/", checkJwt, (req, res) => {
-  const accepts = req.accepts("application/json"); //TODO: update status code
+  const accepts = req.accepts("application/json"); // TODO: update status code
   computers.get_by_property(req, "user", req.user.sub).then(async (data) => {
     data.items.map((entity) => {
       entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
@@ -38,6 +38,39 @@ router.get("/", checkJwt, (req, res) => {
   });
 });
 
+router.get("/:id", checkJwt, (req, res) => {
+  computers
+    .get_by_property(req, "__key__", req.params.id)
+    .then(async (data) => {
+      if (data.items.length !== 1) {
+        res.status(404).json("No computer with this computer_id exists");
+      } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
+        res.status(403).end();
+      } else {
+        const entity = data.items[0];
+        entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+          entity.id
+        }`;
+
+        const children = await peripherals.get_by_property(
+          "computer",
+          entity.id
+        );
+        console.debug(children);
+        children && children.length
+          ? (entity.peripherals = children.map(({ id }) => ({
+              id,
+              self: `${req.protocol}://${req.get(
+                "host"
+              )}${PERIPHERALS_PATH}/${id}`,
+            })))
+          : (entity.peripherals = []);
+
+        res.status(200).json(entity);
+      }
+    });
+});
+
 router.post("/", checkJwt, (req, res, next) => {
   computers
     .post_one(
@@ -46,11 +79,7 @@ router.post("/", checkJwt, (req, res, next) => {
       req.body.serial_number,
       req.user.sub
     )
-    .then((entity) => {
-      if (!entity.Error) {
-        res.status(201).json(entity);
-      }
-    });
+    .then((entity) => res.status(201).json(entity));
 });
 
 router.put("/:computer_id/peripherals/:peripheral_id", (req, res) => {
