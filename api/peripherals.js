@@ -27,9 +27,9 @@ function get_by_property(propKey, propValue) {
   });
 }
 
-function post_one(name, type, length, owner) {
+function post_one(manufacturer, type, serial_number, computer) {
   const key = datastore.key(PERIPHERAL_KIND);
-  const entity = { name, type, length, owner };
+  const entity = { manufacturer, type, serial_number, computer };
   return datastore.save({ key: key, data: entity }).then(() => {
     entity.id = key.id;
     return entity;
