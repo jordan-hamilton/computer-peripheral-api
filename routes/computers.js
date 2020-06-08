@@ -56,7 +56,6 @@ router.get("/:id", checkJwt, (req, res) => {
           "computer",
           entity.id
         );
-        console.debug(children);
         children && children.length
           ? (entity.peripherals = children.map(({ id }) => ({
               id,

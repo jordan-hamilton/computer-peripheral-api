@@ -40,6 +40,36 @@ router.get("/", (req, res) => {
   });
 });
 
+router.get("/:id", (req, res) => {
+  peripherals.get_by_property("__key__", req.params.id).then(async (entity) => {
+    if (entity.Error || entity.length !== 1) {
+      res
+        .status(404)
+        .json({ Error: "No peripheral with this peripheral_id exists" });
+    } else {
+      entity[0].self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+        entity[0].id
+      }`;
+
+      if (entity[0].computer) {
+        const parent = await computers.get_by_property(
+          req,
+          "__key__",
+          entity[0].computer
+        );
+        if (parent.items && parent.items.length === 1) {
+          entity[0].computer = (({ id }) => ({
+            id,
+            self: `${req.protocol}://${req.get("host")}${COMPUTERS_PATH}/${id}`,
+          }))(parent.items[0]);
+        }
+      }
+
+      res.status(200).json(entity[0]);
+    }
+  });
+});
+
 router.post("/", (req, res, next) => {
   peripherals
     .post_one(req.body.manufacturer, req.body.type, req.body.serial_number)
