@@ -81,6 +81,14 @@ router.post("/", checkJwt, (req, res, next) => {
     .then((entity) => res.status(201).json(entity));
 });
 
+router.patch(":/id", checkJwt, (req, res) => {
+  // Make sure
+  computers.get_by_property(req, "__key__", req.params.id).then((data) => {
+    if (data.items && data.items.length === 1) {
+    }
+  });
+});
+
 router.put("/:computer_id/peripherals/:peripheral_id", (req, res) => {
   peripherals
     .get_by_property("__key__", req.params.peripheral_id)
@@ -159,26 +167,37 @@ router.delete("/:computer_id/peripherals/:peripheral_id", (req, res) => {
 });
 
 router.delete("/:id", checkJwt, async (req, res) => {
-  if (req.user && req.user.sub) {
-    const data = await boats.get_by_property("__key__", req.params.id);
+  const data = await computers.get_by_property(req, "__key__", req.params.id);
 
-    if (data && data.length === 1) {
-      if (data[0].owner === req.user.sub) {
-        boats.delete_one(req.params.id).then((data) => {
-          if (data.Error) {
-            res.status(403).end();
-          } else {
-            res.status(204).end();
-          }
-        });
-      } else {
-        res.status(403).end();
+  if (data.items && data.items.length === 1) {
+    if (data.items[0].user === req.user.sub) {
+      const children = await peripherals.get_by_property(
+        "computer",
+        req.params.id
+      );
+
+      for (let child of children) {
+        peripherals.update_one(
+          child.id,
+          child.manufacturer,
+          child.type,
+          child.serial_number,
+          null
+        );
       }
+
+      computers.delete_one(req.params.id).then((data) => {
+        if (data.Error) {
+          res.status(403).json(data);
+        } else {
+          res.status(204).end();
+        }
+      });
     } else {
       res.status(403).end();
     }
   } else {
-    res.status(401).end();
+    res.status(404).json({ Error: "No computer with this computer_id exists" });
   }
 });
 /* ------------- End Controller Functions ------------- */
