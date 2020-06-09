@@ -42,7 +42,7 @@ router.get("/:id", checkJwt, (req, res) => {
   computers
     .get_by_property(req, "__key__", req.params.id)
     .then(async (data) => {
-      if (data.items.length !== 1) {
+      if (!data.items || data.items.length !== 1) {
         res.status(404).json("No computer with this computer_id exists");
       } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
         res.status(403).end();
@@ -82,9 +82,26 @@ router.post("/", checkJwt, (req, res, next) => {
 });
 
 router.patch(":/id", checkJwt, (req, res) => {
-  // Make sure
   computers.get_by_property(req, "__key__", req.params.id).then((data) => {
-    if (data.items && data.items.length === 1) {
+    if (!data.items || data.items.length !== 1) {
+      res.status(404).json("No computer with this computer_id exists");
+    } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
+      res.status(401).end();
+    } else {
+      const entity = {
+        id: request.params.id,
+        manufacturer: req.params.manufacturer || data.items[0].manufacturer,
+        model: req.params.model || data.items[0].model,
+        serial_number: req.params.serial_number || data.items[0].serial_number,
+        user: data.items[0].user || null,
+      };
+      computers.update_one(
+        entity.id,
+        entity.manufacturer,
+        entity.model,
+        entity.serial_number,
+        entity.user
+      );
     }
   });
 });

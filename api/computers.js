@@ -67,6 +67,23 @@ function post_one(manufacturer, model, serial_number, user) {
   });
 }
 
+function update_one(id, manufacturer, model, serial_number, user) {
+  const key = datastore.key([PERIPHERAL_KIND, parseInt(id, 10)]);
+  const entity = { manufacturer, model, serial_number, user };
+
+  if (entity.user === null) delete entity.user;
+
+  return datastore
+    .update({ key: key, data: entity })
+    .then(() => {
+      entity.id = key.id;
+      return entity;
+    })
+    .catch((err) => {
+      return { Error: "No computer with this computer_id exists" };
+    });
+}
+
 async function delete_one(id) {
   const key = datastore.key([COMPUTER_KIND, parseInt(id, 10)]);
   return datastore.delete(key);
@@ -77,5 +94,6 @@ module.exports = {
   get_all,
   get_by_property,
   post_one,
+  update_one,
   delete_one,
 };
