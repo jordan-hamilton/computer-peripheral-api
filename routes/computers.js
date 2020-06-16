@@ -76,7 +76,7 @@ router.post("/", checkJwt, (req, res, next) => {
       req.body.manufacturer,
       req.body.model,
       req.body.serial_number,
-      req.user.sub
+      null
     )
     .then((entity) => res.status(201).json(entity));
 });
