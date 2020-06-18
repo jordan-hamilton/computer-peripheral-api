@@ -7,8 +7,10 @@ const peripherals = require("../api/peripherals");
 const { checkJwt, PERIPHERALS_PATH } = require("../config");
 
 /* ------------- Begin Controller Functions ------------- */
-router.get("/", checkJwt, (req, res) => {
-  const accepts = req.accepts("application/json"); // TODO: update status code
+router.get("/", checkJwt, async (req, res) => {
+  const accepts = req.accepts("application/json");
+  // TODO: Validate accepts
+
   computers.get_by_property(req, "user", req.user.sub).then(async (data) => {
     data.items.map((entity) => {
       entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
@@ -43,7 +45,7 @@ router.get("/:id", checkJwt, (req, res) => {
     .get_by_property(req, "__key__", req.params.id)
     .then(async (data) => {
       if (!data.items || data.items.length !== 1) {
-        res.status(404).json("No computer with this computer_id exists");
+        res.status(403).end();
       } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
         res.status(403).end();
       } else {
@@ -70,38 +72,36 @@ router.get("/:id", checkJwt, (req, res) => {
     });
 });
 
-router.post("/", checkJwt, (req, res, next) => {
-  computers
-    .post_one(
-      req.body.manufacturer,
-      req.body.model,
-      req.body.serial_number,
-      null
-    )
-    .then((entity) => res.status(201).json(entity));
+router.post("/", checkJwt, (req, res) => {
+  const entity = {
+    manufacturer: req.body.manufacturer,
+    model: req.body.model,
+    serial_number: req.body.serial_number,
+    user: req.user.sub,
+  };
+
+  // TODO: Ensure entity is well-defined
+
+  //TODO: Ensure self URL is included in entity response
+  computers.post_one(entity).then((entity) => res.status(201).json(entity));
 });
 
 router.patch(":/id", checkJwt, (req, res) => {
   computers.get_by_property(req, "__key__", req.params.id).then((data) => {
     if (!data.items || data.items.length !== 1) {
-      res.status(404).json("No computer with this computer_id exists");
+      res.status(403).end();
     } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
-      res.status(401).end();
+      res.status(403).end();
     } else {
-      const entity = {
-        id: request.params.id,
-        manufacturer: req.params.manufacturer || data.items[0].manufacturer,
-        model: req.params.model || data.items[0].model,
-        serial_number: req.params.serial_number || data.items[0].serial_number,
-        user: data.items[0].user || null,
+      const originalEntity = data.items[0];
+      const updatedEntity = {
+        id: req.params.id,
+        manufacturer: req.body.manufacturer || originalEntity.manufacturer,
+        model: req.body.model || originalEntity.model,
+        serial_number: req.body.serial_number || originalEntity.serial_number,
+        user: req.user.sub,
       };
-      computers.update_one(
-        entity.id,
-        entity.manufacturer,
-        entity.model,
-        entity.serial_number,
-        entity.user
-      );
+      computers.update_one(updatedEntity); //TODO: Provide response
     }
   });
 });

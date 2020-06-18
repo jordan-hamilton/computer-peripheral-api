@@ -4,32 +4,19 @@ const datastore = ds.datastore;
 const { COMPUTER_KIND } = require("../config");
 
 /* ------------- Begin Model Functions ------------- */
-function get_all() {
-  const results = {};
-  const q = datastore.createQuery(COMPUTER_KIND).limit(5);
+function get_count_by_property(propKey, propValue) {
+  propKey === "__key__"
+    ? (value = datastore.key([COMPUTER_KIND, datastore.int(propValue)]))
+    : (value = propValue);
 
-  if (req.query && Object.keys(req.query).includes("cursor")) {
-    q.start(req.query.cursor);
-  }
+  const q = datastore.createQuery(COMPUTER_KIND).filter(propKey, "=", value);
 
-  return datastore.runQuery(q).then((entities) => {
-    results.items = entities[0].map(ds.fromDatastore);
-
-    if (entities[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
-      results.next = entities[1].endCursor;
-    }
-
-    results.count = -1; // TODO: get unpaginated count
-
-    return results;
-  });
+  return datastore.runQuery(q).then((data) => data[0].length);
 }
 
 function get_by_property(req, propKey, propValue) {
   let value;
   const results = {};
-
-  //TODO: get relationship to peripherals
 
   propKey === "__key__"
     ? (value = datastore.key([COMPUTER_KIND, datastore.int(propValue)]))
@@ -40,38 +27,30 @@ function get_by_property(req, propKey, propValue) {
     .filter(propKey, "=", value)
     .limit(5);
 
-  return datastore.runQuery(q).then((entities) => {
+  return datastore.runQuery(q).then(async (entities) => {
     results.items = entities[0].map(ds.fromDatastore);
 
     if (entities[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
       results.next = entities[1].endCursor;
     }
 
-    results.count = -1; // TODO: get unpaginated count
+    results.total_records = await get_count_by_property(propKey, propValue);
 
     return results;
   });
 }
 
-function post_one(manufacturer, model, serial_number, user) {
+function post_one(entity) {
   const key = datastore.key(COMPUTER_KIND);
-  const entity = {
-    manufacturer,
-    model,
-    serial_number,
-    user,
-  };
+
   return datastore.save({ key: key, data: entity }).then(() => {
     entity.id = key.id;
     return entity;
   });
 }
 
-function update_one(id, manufacturer, model, serial_number, user) {
-  const key = datastore.key([PERIPHERAL_KIND, parseInt(id, 10)]);
-  const entity = { manufacturer, model, serial_number, user };
-
-  if (entity.user === null) delete entity.user;
+function update_one(entity) {
+  const key = datastore.key([COMPUTER_KIND, parseInt(entity.id, 10)]);
 
   return datastore
     .update({ key: key, data: entity })
@@ -91,7 +70,6 @@ async function delete_one(id) {
 /* ------------- End Model Functions ------------- */
 
 module.exports = {
-  get_all,
   get_by_property,
   post_one,
   update_one,
