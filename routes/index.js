@@ -51,7 +51,8 @@ router.post("/login", async (req, res) => {
   if (jwt) {
     req.session.jwt = jwt;
     req.session.userId = jwtDecoder(jwt).sub;
-    await users.post_one(req.session.userId);
+    const user = { userId: req.session.userId, email: jwtDecoder(jwt).email };
+    await users.post_one(user);
     res.redirect("/user");
   } else {
     res.redirect("/");

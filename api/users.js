@@ -43,11 +43,10 @@ function get_by_property(propKey, propValue) {
   });
 }
 
-async function post_one(userId) {
+async function post_one(entity) {
   const key = datastore.key(USER_KIND);
-  const entity = { userId };
 
-  const duplicate = await get_by_property("userId", userId);
+  const duplicate = await get_by_property("userId", entity.userId);
 
   return duplicate && duplicate.length
     ? { Error: "A user with this user_id already exists" }
