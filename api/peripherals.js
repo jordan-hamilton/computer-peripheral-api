@@ -4,6 +4,14 @@ const datastore = ds.datastore;
 const { PERIPHERAL_KIND } = require("../config");
 
 /* ------------- Begin Model Functions ------------- */
+function get_count() {
+  const q = datastore.createQuery(PERIPHERAL_KIND);
+
+  return datastore.runQuery(q).then((data) => {
+    return data[0].length;
+  });
+}
+
 function get_all(req) {
   const results = {};
   const q = datastore.createQuery(PERIPHERAL_KIND).limit(5);
@@ -12,14 +20,14 @@ function get_all(req) {
     q.start(req.query.cursor);
   }
 
-  return datastore.runQuery(q).then((entities) => {
+  return datastore.runQuery(q).then(async (entities) => {
     results.items = entities[0].map(ds.fromDatastore);
 
     if (entities[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
       results.next = entities[1].endCursor;
     }
 
-    results.count = -1; // TODO: get unpaginated count
+    results.total_records = await get_count();
 
     return results;
   });
@@ -79,6 +87,7 @@ async function delete_one(id) {
 /* ------------- End Model Functions ------------- */
 
 module.exports = {
+  get_count,
   get_all,
   get_by_property,
   post_one,
