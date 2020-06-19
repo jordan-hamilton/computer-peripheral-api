@@ -56,6 +56,10 @@ function post_one(entity) {
 function update_one(entity) {
   const key = datastore.key([COMPUTER_KIND, parseInt(entity.id, 10)]);
 
+  // Remove the ID from the object before updating the datastore to prevent saving
+  // a redundant ID property with the entity.
+  delete entity.id;
+
   return datastore
     .update({ key: key, data: entity })
     .then(() => {

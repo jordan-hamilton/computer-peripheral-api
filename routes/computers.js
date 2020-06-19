@@ -81,8 +81,6 @@ router.post("/", checkJwt, (req, res) => {
     user: req.user.sub,
   };
 
-  // TODO: Ensure entity is well-defined?
-
   computers.post_one(entity).then((entity) => {
     entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
       entity.id
