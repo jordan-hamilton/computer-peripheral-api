@@ -27,6 +27,10 @@ function get_by_property(req, propKey, propValue) {
     .filter(propKey, "=", value)
     .limit(5);
 
+  if (req.query && Object.keys(req.query).includes("cursor")) {
+    q.start(req.query.cursor);
+  }
+
   return datastore.runQuery(q).then(async (entities) => {
     results.items = entities[0].map(ds.fromDatastore);
 
@@ -55,7 +59,7 @@ function update_one(entity) {
   return datastore
     .update({ key: key, data: entity })
     .then(() => {
-      entity.id = key.id;
+      entity.id = key.id.toString();
       return entity;
     })
     .catch((err) => {
