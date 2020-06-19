@@ -7,7 +7,13 @@ const computers = require("../api/computers");
 
 /* ------------- Begin Controller Functions ------------- */
 router.get("/", (req, res) => {
-  users.get_all().then((data) => res.status(200).json(data));
+  const accepts = req.accepts("application/json");
+
+  if (!accepts) {
+    res.status(406).send("Not Acceptable");
+  } else {
+    users.get_all().then((data) => res.status(200).json(data));
+  }
 });
 
 router.all("/", (req, res) => {
