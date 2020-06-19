@@ -363,6 +363,22 @@ router.delete("/:id", checkJwt, async (req, res) => {
     res.status(404).json({ Error: "No computer with this computer_id exists" });
   }
 });
+
+router.all("/", (req, res) => {
+  res.set("Allow", "GET, POST");
+  res.status(405).end();
+});
+
+router.all("/:id", (req, res) => {
+  res.set("Allow", "GET, PATCH, PUT, DELETE");
+  res.status(405).end();
+});
+
+router.all("/:computer_id/peripherals/:peripheral_id", (req, res) => {
+  res.set("Allow", "PUT, DELETE");
+  res.status(405).end();
+});
+
 /* ------------- End Controller Functions ------------- */
 
 module.exports = router;
