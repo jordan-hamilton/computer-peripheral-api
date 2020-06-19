@@ -10,7 +10,6 @@ const { checkJwt, PERIPHERALS_PATH } = require("../config");
 router.get("/", checkJwt, async (req, res) => {
   const accepts = req.accepts("application/json");
   // TODO: Validate accepts
-
   computers.get_by_property(req, "user", req.user.sub).then(async (data) => {
     data.items.map((entity) => {
       entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
@@ -45,8 +44,10 @@ router.get("/:id", checkJwt, (req, res) => {
     .get_by_property(req, "__key__", req.params.id)
     .then(async (data) => {
       if (!data.items || data.items.length !== 1) {
+        // Set the status code to 403 if a protected resource was not found.
         res.status(403).end();
       } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
+        // Set the status code to 403 if a protected resource does not belong to the current user.
         res.status(403).end();
       } else {
         const entity = data.items[0];
@@ -80,17 +81,26 @@ router.post("/", checkJwt, (req, res) => {
     user: req.user.sub,
   };
 
-  // TODO: Ensure entity is well-defined
+  // TODO: Ensure entity is well-defined?
 
-  //TODO: Ensure self URL is included in entity response
-  computers.post_one(entity).then((entity) => res.status(201).json(entity));
+  computers.post_one(entity).then((entity) => {
+    entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+      entity.id
+    }`;
+    // Append an empty array rather than querying for related non-user entities,
+    // since this relationship can't exist yet.
+    entity.peripherals = [];
+    res.status(201).json(entity);
+  });
 });
 
-router.patch(":/id", checkJwt, (req, res) => {
+router.patch("/:id", checkJwt, (req, res) => {
   computers.get_by_property(req, "__key__", req.params.id).then((data) => {
     if (!data.items || data.items.length !== 1) {
+      // Set the status code to 403 if a protected resource was not found.
       res.status(403).end();
     } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
+      // Set the status code to 403 if a protected resource does not belong to the current user.
       res.status(403).end();
     } else {
       const originalEntity = data.items[0];
@@ -101,7 +111,65 @@ router.patch(":/id", checkJwt, (req, res) => {
         serial_number: req.body.serial_number || originalEntity.serial_number,
         user: req.user.sub,
       };
-      computers.update_one(updatedEntity); //TODO: Provide response
+      computers.update_one(updatedEntity).then(async (entity) => {
+        entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+          entity.id
+        }`;
+
+        const children = await peripherals.get_by_property(
+          "computer",
+          entity.id
+        );
+        children && children.length
+          ? (entity.peripherals = children.map(({ id }) => ({
+              id,
+              self: `${req.protocol}://${req.get(
+                "host"
+              )}${PERIPHERALS_PATH}/${id}`,
+            })))
+          : (entity.peripherals = []);
+        res.status(200).json(entity);
+      });
+    }
+  });
+});
+
+router.put("/:id", checkJwt, (req, res) => {
+  computers.get_by_property(req, "__key__", req.params.id).then((data) => {
+    if (!data.items || data.items.length !== 1) {
+      // Set the status code to 403 if a protected resource was not found.
+      res.status(403).end();
+    } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
+      // Set the status code to 403 if a protected resource does not belong to the current user.
+      res.status(403).end();
+    } else {
+      const entity = {
+        id: req.params.id,
+        manufacturer: req.body.manufacturer,
+        model: req.body.model,
+        serial_number: req.body.serial_number,
+        user: req.user.sub,
+      };
+      computers.update_one(entity).then(async (entity) => {
+        entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+          entity.id
+        }`;
+
+        const children = await peripherals.get_by_property(
+          "computer",
+          entity.id
+        );
+        children && children.length
+          ? (entity.peripherals = children.map(({ id }) => ({
+              id,
+              self: `${req.protocol}://${req.get(
+                "host"
+              )}${PERIPHERALS_PATH}/${id}`,
+            })))
+          : (entity.peripherals = []);
+
+        res.status(200).json(entity);
+      });
     }
   });
 });
