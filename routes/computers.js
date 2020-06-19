@@ -48,6 +48,9 @@ router.get("/", checkJwt, async (req, res) => {
 
 router.get("/:id", checkJwt, (req, res) => {
   const accepts = req.accepts("application/json");
+  const forbiddenError = {
+    Error: "The specified computer could not be accessed",
+  };
 
   if (!accepts) {
     res.status(406).send("Not Acceptable");
@@ -57,10 +60,10 @@ router.get("/:id", checkJwt, (req, res) => {
       .then(async (data) => {
         if (!data.items || data.items.length !== 1) {
           // Set the status code to 403 if a protected resource was not found.
-          res.status(403).end();
+          res.status(403).json(forbiddenError);
         } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
           // Set the status code to 403 if a protected resource does not belong to the current user.
-          res.status(403).end();
+          res.status(403).json(forbiddenError);
         } else {
           const entity = data.items[0];
           entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
@@ -93,27 +96,29 @@ router.post("/", checkJwt, (req, res) => {
     res.status(415).send("Server only accepts application/json data");
   } else if (!accepts) {
     res.status(406).send("Not Acceptable");
-  } else if (req.body.id || req.body.self) {
+  } else if (
+    ["id", "self"].some((key) => Object.keys(req.body).includes(key))
+  ) {
     res.status(400).json({
       Error:
         "The request object attempted to specify one or more idempotent attributes",
     });
   } else if (
-    !req.body.manufacturer ||
-    !req.body.model ||
-    !req.body.serial_number
+    !["manufacturer", "model", "serial_number"].every((key) =>
+      Object.keys(req.body).includes(key)
+    )
   ) {
     res.status(400).json({
       Error:
         "The request object is missing at least one of the required attributes",
     });
   } else {
-    const entity = {
-      manufacturer: req.body.manufacturer,
-      model: req.body.model,
-      serial_number: req.body.serial_number,
+    const entity = (({ manufacturer, model, serial_number }) => ({
+      manufacturer,
+      model,
+      serial_number,
       user: req.user.sub,
-    };
+    }))(req.body);
 
     computers.post_one(entity).then((entity) => {
       entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
@@ -131,20 +136,25 @@ router.post("/", checkJwt, (req, res) => {
 
 router.patch("/:id", checkJwt, (req, res) => {
   const accepts = req.accepts("application/json");
+  const forbiddenError = {
+    Error: "The specified computer could not be modified",
+  };
 
   if (req.get("Content-Type") !== "application/json") {
     res.status(415).send("Server only accepts application/json data");
   } else if (!accepts) {
     res.status(406).send("Not Acceptable");
-  } else if (req.body.id || req.body.self) {
+  } else if (
+    ["id", "self"].some((key) => Object.keys(req.body).includes(key))
+  ) {
     res.status(400).json({
       Error:
         "The request object attempted to specify one or more idempotent attributes",
     });
   } else if (
-    !req.body.manufacturer &&
-    !req.body.model &&
-    !req.body.serial_number
+    !["manufacturer", "model", "serial_number"].some((key) =>
+      Object.keys(req.body).includes(key)
+    )
   ) {
     res.status(400).json({
       Error: "The request object contains no modifiable attribute",
@@ -153,10 +163,10 @@ router.patch("/:id", checkJwt, (req, res) => {
     computers.get_by_property(req, "__key__", req.params.id).then((data) => {
       if (!data.items || data.items.length !== 1) {
         // Set the status code to 403 if a protected resource was not found.
-        res.status(403).end();
+        res.status(403).json(forbiddenError);
       } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
         // Set the status code to 403 if a protected resource does not belong to the current user.
-        res.status(403).end();
+        res.status(403).json(forbiddenError);
       } else {
         const originalEntity = data.items[0];
         const updatedEntity = {
@@ -165,6 +175,7 @@ router.patch("/:id", checkJwt, (req, res) => {
           serial_number: req.body.serial_number || originalEntity.serial_number,
           user: req.user.sub,
         };
+
         computers
           .update_one(req.params.id, updatedEntity)
           .then(async (entity) => {
@@ -193,21 +204,26 @@ router.patch("/:id", checkJwt, (req, res) => {
 
 router.put("/:id", checkJwt, (req, res) => {
   const accepts = req.accepts("application/json");
+  const forbiddenError = {
+    Error: "The specified computer could not be modified",
+  };
 
   if (req.get("Content-Type") !== "application/json") {
     res.status(415).send("Server only accepts application/json data");
   } else if (!accepts) {
     res.status(406).send("Not Acceptable");
   } else if (
-    !req.body.manufacturer ||
-    !req.body.model ||
-    !req.body.serial_number
+    !["manufacturer", "model", "serial_number"].every((key) =>
+      Object.keys(req.body).includes(key)
+    )
   ) {
     res.status(400).json({
       Error:
         "The request object is missing at least one of the required attributes",
     });
-  } else if (req.body.id || req.body.self) {
+  } else if (
+    ["id", "self"].some((key) => Object.keys(req.body).includes(key))
+  ) {
     res.status(400).json({
       Error:
         "The request object attempted to specify one or more idempotent attributes",
@@ -216,118 +232,148 @@ router.put("/:id", checkJwt, (req, res) => {
     computers.get_by_property(req, "__key__", req.params.id).then((data) => {
       if (!data.items || data.items.length !== 1) {
         // Set the status code to 403 if a protected resource was not found.
-        res.status(403).end();
+        res.status(403).json(forbiddenError);
       } else if (data.items[0].user && data.items[0].user !== req.user.sub) {
         // Set the status code to 403 if a protected resource does not belong to the current user.
-        res.status(403).end();
+        res.status(403).json(forbiddenError);
       } else {
-        const entity = {
-          manufacturer: req.body.manufacturer,
-          model: req.body.model,
-          serial_number: req.body.serial_number,
+        const updatedEntity = (({ manufacturer, model, serial_number }) => ({
+          manufacturer,
+          model,
+          serial_number,
           user: req.user.sub,
-        };
-        computers.update_one(req.params.id, entity).then(async (entity) => {
-          entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
-            entity.id
-          }`;
+        }))(req.body);
 
-          const children = await peripherals.get_by_property(
-            "computer",
-            entity.id
-          );
-          children && children.length
-            ? (entity.peripherals = children.map(({ id }) => ({
-                id,
-                self: `${req.protocol}://${req.get(
-                  "host"
-                )}${PERIPHERALS_PATH}/${id}`,
-              })))
-            : (entity.peripherals = []);
+        computers
+          .update_one(req.params.id, updatedEntity)
+          .then(async (entity) => {
+            entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+              entity.id
+            }`;
 
-          res.status(200).json(entity);
-        });
+            const children = await peripherals.get_by_property(
+              "computer",
+              entity.id
+            );
+            children && children.length
+              ? (entity.peripherals = children.map(({ id }) => ({
+                  id,
+                  self: `${req.protocol}://${req.get(
+                    "host"
+                  )}${PERIPHERALS_PATH}/${id}`,
+                })))
+              : (entity.peripherals = []);
+
+            res.status(200).json(entity);
+          });
       }
     });
   }
 });
 
-router.put("/:computer_id/peripherals/:peripheral_id", (req, res) => {
+router.put("/:computer_id/peripherals/:peripheral_id", checkJwt, (req, res) => {
+  const forbiddenError = {
+    Error: "The specified peripheral could not be assigned to this computer",
+  };
+  //TODO: Verify user
+  //TODO: Verify accepts
+  //TODO: Send response?
   peripherals
     .get_by_property("__key__", req.params.peripheral_id)
     .then((child_data) => {
       if (child_data.length !== 1) {
-        res.status(404).json({
-          Error: "The specified computer and/or peripheral don\u2019t exist",
-        });
+        // Set the status code to 403 when attempting to assign a nonexistent resource.
+        res.status(403).json(forbiddenError);
       } else {
         computers
           .get_by_property(req, "__key__", req.params.computer_id)
           .then((parent_data) => {
-            if (parent_data.items.length !== 1) {
-              res.status(404).json({
-                Error:
-                  "The specified computer and/or peripheral don\u2019t exist",
-              });
+            if (!parent_data.items || parent_data.items.length !== 1) {
+              // Set the status code to 403 if a protected resource was not found.
+              res.status(403).json(forbiddenError);
+            } else if (
+              parent_data.items[0].user &&
+              parent_data.items[0].user !== req.user.sub
+            ) {
+              // Set the status code to 403 if a protected resource does not belong to the current user.
+              res.status(403).json(forbiddenError);
             } else if (child_data[0].computer) {
-              res.status(403).json({
-                Error:
-                  "The specified peripheral is already assigned to a computer.",
-              });
+              // Set the status code to 403 if a resource was not unassigned before attempting to reassign it.
+              res.status(403).json(forbiddenError);
             } else {
+              const updatedEntity = (({
+                manufacturer,
+                type,
+                serial_number,
+              }) => ({
+                manufacturer,
+                type,
+                serial_number,
+                computer: parent_data.items[0].id,
+              }))(child_data[0]);
+
               peripherals
-                .update_one(
-                  child_data[0].id,
-                  child_data[0].manufacturer,
-                  child_data[0].type,
-                  child_data[0].serial_number,
-                  parent_data.items[0].id
-                )
-                .then(() => res.status(204).end());
+                .update_one(child_data[0].id, updatedEntity)
+                .then(() => res.status(204).end()); // TODO: Provide response?
             }
           });
       }
     });
 });
 
-router.delete("/:computer_id/peripherals/:peripheral_id", (req, res) => {
-  computers
-    .get_by_property(req, "__key__", req.params.computer_id)
-    .then((parent_data) => {
-      if (parent_data.items.length !== 1) {
-        res.status(404).json({
-          Error:
-            "No computer with this computer_id has a peripheral with this peripheral_id",
-        });
-      } else {
-        peripherals
-          .get_by_property("__key__", req.params.peripheral_id)
-          .then((child_data) => {
-            if (child_data.length !== 1) {
-              res.status(404).json({
-                Error:
-                  "No computer with this computer_id has a peripheral with this peripheral_id",
-              });
-            } else {
-              child_data[0].computer !== req.params.computer_id
-                ? res.status(404).json({
-                    Error:
-                      "No computer with this computer_id has a peripheral with this peripheral_id",
-                  })
-                : peripherals
-                    .update_one(
-                      child_data[0].id,
-                      child_data[0].manufacturer,
-                      child_data[0].type,
-                      child_data[0].serial_number,
-                      null
-                    )
-                    .then(() => res.status(204).end());
-            }
-          });
-      }
-    });
-});
+router.delete(
+  "/:computer_id/peripherals/:peripheral_id",
+  checkJwt,
+  (req, res) => {
+    const forbiddenError = {
+      Error:
+        "The specified peripheral could not be unassigned from this computer",
+    };
+    //TODO: Verify user
+    //TODO: Verify accepts
+    //TODO: Send response?
+    computers
+      .get_by_property(req, "__key__", req.params.computer_id)
+      .then((parent_data) => {
+        if (!parent_data.items || parent_data.items.length !== 1) {
+          // Set the status code to 403 if a protected resource was not found.
+          res.status(403).json(forbiddenError);
+        } else if (
+          parent_data.items[0].user &&
+          parent_data.items[0].user !== req.user.sub
+        ) {
+          // Set the status code to 403 if a protected resource does not belong to the current user.
+          res.status(403).json(forbiddenError);
+        } else {
+          peripherals
+            .get_by_property("__key__", req.params.peripheral_id)
+            .then((child_data) => {
+              if (child_data.length !== 1) {
+                // Set the status code to 403 when attempting to unassign a nonexistent resource.
+                res.status(403).json(forbiddenError);
+              } else {
+                const updatedEntity = (({
+                  manufacturer,
+                  type,
+                  serial_number,
+                }) => ({
+                  manufacturer,
+                  type,
+                  serial_number,
+                }))(child_data[0]);
+
+                child_data[0].computer !== req.params.computer_id
+                  ? // Set the status code to 403 when attempting to unassign a resource that was not assigned.
+                    res.status(403).json(forbiddenError)
+                  : peripherals
+                      .update_one(child_data[0].id, updatedEntity)
+                      .then(() => res.status(204).end()); // TODO: Provide response?
+              }
+            });
+        }
+      });
+  }
+);
 
 router.delete("/:id", checkJwt, async (req, res) => {
   const data = await computers.get_by_property(req, "__key__", req.params.id);
@@ -340,13 +386,12 @@ router.delete("/:id", checkJwt, async (req, res) => {
       );
 
       for (let child of children) {
-        peripherals.update_one(
-          child.id,
-          child.manufacturer,
-          child.type,
-          child.serial_number,
-          null
-        );
+        const updatedEntity = (({ manufacturer, type, serial_number }) => ({
+          manufacturer,
+          type,
+          serial_number,
+        }))(child);
+        peripherals.update_one(child.id, updatedEntity);
       }
 
       computers.delete_one(req.params.id).then((data) => {
@@ -360,7 +405,7 @@ router.delete("/:id", checkJwt, async (req, res) => {
       res.status(403).end();
     }
   } else {
-    res.status(404).json({ Error: "No computer with this computer_id exists" });
+    res.status(404).json({ Error: "No computer with this computer_id exists" }); //TODO: Remove 404?
   }
 });
 
