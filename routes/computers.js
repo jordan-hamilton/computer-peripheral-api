@@ -396,7 +396,7 @@ router.delete("/:id", checkJwt, async (req, res) => {
 
       computers.delete_one(req.params.id).then((data) => {
         if (data.Error) {
-          res.status(403).json(data);
+          res.status(403).end();
         } else {
           res.status(204).end();
         }
@@ -405,7 +405,7 @@ router.delete("/:id", checkJwt, async (req, res) => {
       res.status(403).end();
     }
   } else {
-    res.status(404).json({ Error: "No computer with this computer_id exists" }); //TODO: Remove 404?
+    res.status(403).end();
   }
 });
 
