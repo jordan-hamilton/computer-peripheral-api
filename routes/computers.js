@@ -272,84 +272,35 @@ router.put("/:id", checkJwt, (req, res) => {
 });
 
 router.put("/:computer_id/peripherals/:peripheral_id", checkJwt, (req, res) => {
+  const accepts = req.accepts("application/json");
   const forbiddenError = {
     Error: "The specified peripheral could not be assigned to this computer",
   };
-  //TODO: Verify user
-  //TODO: Verify accepts
   //TODO: Send response?
-  peripherals
-    .get_by_property("__key__", req.params.peripheral_id)
-    .then((child_data) => {
-      if (child_data.length !== 1) {
-        // Set the status code to 403 when attempting to assign a nonexistent resource.
-        res.status(403).json(forbiddenError);
-      } else {
-        computers
-          .get_by_property(req, "__key__", req.params.computer_id)
-          .then((parent_data) => {
-            if (!parent_data.items || parent_data.items.length !== 1) {
-              // Set the status code to 403 if a protected resource was not found.
-              res.status(403).json(forbiddenError);
-            } else if (
-              parent_data.items[0].user &&
-              parent_data.items[0].user !== req.user.sub
-            ) {
-              // Set the status code to 403 if a protected resource does not belong to the current user.
-              res.status(403).json(forbiddenError);
-            } else if (child_data[0].computer) {
-              // Set the status code to 403 if a resource was not unassigned before attempting to reassign it.
-              res.status(403).json(forbiddenError);
-            } else {
-              const updatedEntity = (({
-                manufacturer,
-                type,
-                serial_number,
-              }) => ({
-                manufacturer,
-                type,
-                serial_number,
-                computer: parent_data.items[0].id,
-              }))(child_data[0]);
-
-              peripherals
-                .update_one(child_data[0].id, updatedEntity)
-                .then(() => res.status(204).end()); // TODO: Provide response?
-            }
-          });
-      }
-    });
-});
-
-router.delete(
-  "/:computer_id/peripherals/:peripheral_id",
-  checkJwt,
-  (req, res) => {
-    const forbiddenError = {
-      Error:
-        "The specified peripheral could not be unassigned from this computer",
-    };
-    //TODO: Verify user
-    //TODO: Verify accepts
-    //TODO: Send response?
-    computers
-      .get_by_property(req, "__key__", req.params.computer_id)
-      .then((parent_data) => {
-        if (!parent_data.items || parent_data.items.length !== 1) {
-          // Set the status code to 403 if a protected resource was not found.
-          res.status(403).json(forbiddenError);
-        } else if (
-          parent_data.items[0].user &&
-          parent_data.items[0].user !== req.user.sub
-        ) {
-          // Set the status code to 403 if a protected resource does not belong to the current user.
+  if (!accepts) {
+    res.status(406).send("Not Acceptable");
+  } else {
+    peripherals
+      .get_by_property("__key__", req.params.peripheral_id)
+      .then((child_data) => {
+        if (child_data.length !== 1) {
+          // Set the status code to 403 when attempting to assign a nonexistent resource.
           res.status(403).json(forbiddenError);
         } else {
-          peripherals
-            .get_by_property("__key__", req.params.peripheral_id)
-            .then((child_data) => {
-              if (child_data.length !== 1) {
-                // Set the status code to 403 when attempting to unassign a nonexistent resource.
+          computers
+            .get_by_property(req, "__key__", req.params.computer_id)
+            .then((parent_data) => {
+              if (!parent_data.items || parent_data.items.length !== 1) {
+                // Set the status code to 403 if a protected resource was not found.
+                res.status(403).json(forbiddenError);
+              } else if (
+                parent_data.items[0].user &&
+                parent_data.items[0].user !== req.user.sub
+              ) {
+                // Set the status code to 403 if a protected resource does not belong to the current user.
+                res.status(403).json(forbiddenError);
+              } else if (child_data[0].computer) {
+                // Set the status code to 403 if a resource was not unassigned before attempting to reassign it.
                 res.status(403).json(forbiddenError);
               } else {
                 const updatedEntity = (({
@@ -360,18 +311,74 @@ router.delete(
                   manufacturer,
                   type,
                   serial_number,
+                  computer: parent_data.items[0].id,
                 }))(child_data[0]);
 
-                child_data[0].computer !== req.params.computer_id
-                  ? // Set the status code to 403 when attempting to unassign a resource that was not assigned.
-                    res.status(403).json(forbiddenError)
-                  : peripherals
-                      .update_one(child_data[0].id, updatedEntity)
-                      .then(() => res.status(204).end()); // TODO: Provide response?
+                peripherals
+                  .update_one(child_data[0].id, updatedEntity)
+                  .then(() => res.status(204).end()); // TODO: Provide response?
               }
             });
         }
       });
+  }
+});
+
+router.delete(
+  "/:computer_id/peripherals/:peripheral_id",
+  checkJwt,
+  (req, res) => {
+    //TODO: Send response?
+    const accepts = req.accepts("application/json");
+    const forbiddenError = {
+      Error:
+        "The specified peripheral could not be unassigned from this computer",
+    };
+
+    if (!accepts) {
+      res.status(406).send("Not Acceptable");
+    } else {
+      computers
+        .get_by_property(req, "__key__", req.params.computer_id)
+        .then((parent_data) => {
+          if (!parent_data.items || parent_data.items.length !== 1) {
+            // Set the status code to 403 if a protected resource was not found.
+            res.status(403).json(forbiddenError);
+          } else if (
+            parent_data.items[0].user &&
+            parent_data.items[0].user !== req.user.sub
+          ) {
+            // Set the status code to 403 if a protected resource does not belong to the current user.
+            res.status(403).json(forbiddenError);
+          } else {
+            peripherals
+              .get_by_property("__key__", req.params.peripheral_id)
+              .then((child_data) => {
+                if (child_data.length !== 1) {
+                  // Set the status code to 403 when attempting to unassign a nonexistent resource.
+                  res.status(403).json(forbiddenError);
+                } else {
+                  const updatedEntity = (({
+                    manufacturer,
+                    type,
+                    serial_number,
+                  }) => ({
+                    manufacturer,
+                    type,
+                    serial_number,
+                  }))(child_data[0]);
+
+                  child_data[0].computer !== req.params.computer_id
+                    ? // Set the status code to 403 when attempting to unassign a resource that was not assigned.
+                      res.status(403).json(forbiddenError)
+                    : peripherals
+                        .update_one(child_data[0].id, updatedEntity)
+                        .then(() => res.status(204).end()); // TODO: Provide response?
+                }
+              });
+          }
+        });
+    }
   }
 );
 
