@@ -160,31 +160,32 @@ router.patch("/:id", checkJwt, (req, res) => {
       } else {
         const originalEntity = data.items[0];
         const updatedEntity = {
-          id: req.params.id,
           manufacturer: req.body.manufacturer || originalEntity.manufacturer,
           model: req.body.model || originalEntity.model,
           serial_number: req.body.serial_number || originalEntity.serial_number,
           user: req.user.sub,
         };
-        computers.update_one(updatedEntity).then(async (entity) => {
-          entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
-            entity.id
-          }`;
+        computers
+          .update_one(req.params.id, updatedEntity)
+          .then(async (entity) => {
+            entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+              entity.id
+            }`;
 
-          const children = await peripherals.get_by_property(
-            "computer",
-            entity.id
-          );
-          children && children.length
-            ? (entity.peripherals = children.map(({ id }) => ({
-                id,
-                self: `${req.protocol}://${req.get(
-                  "host"
-                )}${PERIPHERALS_PATH}/${id}`,
-              })))
-            : (entity.peripherals = []);
-          res.status(200).json(entity);
-        });
+            const children = await peripherals.get_by_property(
+              "computer",
+              entity.id
+            );
+            children && children.length
+              ? (entity.peripherals = children.map(({ id }) => ({
+                  id,
+                  self: `${req.protocol}://${req.get(
+                    "host"
+                  )}${PERIPHERALS_PATH}/${id}`,
+                })))
+              : (entity.peripherals = []);
+            res.status(200).json(entity);
+          });
       }
     });
   }
@@ -221,13 +222,12 @@ router.put("/:id", checkJwt, (req, res) => {
         res.status(403).end();
       } else {
         const entity = {
-          id: req.params.id,
           manufacturer: req.body.manufacturer,
           model: req.body.model,
           serial_number: req.body.serial_number,
           user: req.user.sub,
         };
-        computers.update_one(entity).then(async (entity) => {
+        computers.update_one(req.params.id, entity).then(async (entity) => {
           entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
             entity.id
           }`;
