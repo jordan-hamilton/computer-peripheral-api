@@ -79,14 +79,20 @@ router.get("/:id", (req, res) => {
 });
 
 router.post("/", (req, res, next) => {
-  peripherals
-    .post_one(req.body.manufacturer, req.body.type, req.body.serial_number)
-    .then((entity) => {
-      entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
-        entity.id
-      }`;
-      res.status(201).json(entity);
-    });
+  const accepts = req.accepts("application/json");
+
+  const entity = (({ manufacturer, type, serial_number }) => ({
+    manufacturer,
+    type,
+    serial_number,
+  }))(req.body);
+
+  peripherals.post_one(entity).then((entity) => {
+    entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+      entity.id
+    }`;
+    res.status(201).json(entity);
+  });
 });
 
 router.delete("/:id", (req, res) => {

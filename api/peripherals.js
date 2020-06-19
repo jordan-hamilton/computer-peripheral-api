@@ -47,22 +47,16 @@ function get_by_property(propKey, propValue) {
   });
 }
 
-function post_one(manufacturer, type, serial_number) {
-  //TODO: Take entity object instead of parameters
+function post_one(entity) {
   const key = datastore.key(PERIPHERAL_KIND);
-  const entity = { manufacturer, type, serial_number };
   return datastore.save({ key: key, data: entity }).then(() => {
     entity.id = key.id;
     return entity;
   });
 }
 
-function update_one(id, manufacturer, type, serial_number, computer) {
-  //TODO: Take entity object instead of parameters
+function update_one(id, entity) {
   const key = datastore.key([PERIPHERAL_KIND, parseInt(id, 10)]);
-  const entity = { manufacturer, type, serial_number, computer };
-
-  if (entity.computer === null) delete entity.computer;
 
   return datastore
     .update({ key: key, data: entity })
