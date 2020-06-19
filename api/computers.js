@@ -31,11 +31,11 @@ function get_by_property(req, propKey, propValue) {
     q.start(req.query.cursor);
   }
 
-  return datastore.runQuery(q).then(async (entities) => {
-    results.items = entities[0].map(ds.fromDatastore);
+  return datastore.runQuery(q).then(async (data) => {
+    results.items = data[0].map(ds.fromDatastore);
 
-    if (entities[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
-      results.next = entities[1].endCursor;
+    if (data[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
+      results.next = data[1].endCursor;
     }
 
     results.total_records = await get_count_by_property(propKey, propValue);
@@ -53,12 +53,8 @@ function post_one(entity) {
   });
 }
 
-function update_one(entity) {
-  const key = datastore.key([COMPUTER_KIND, parseInt(entity.id, 10)]);
-
-  // Remove the ID from the object before updating the datastore to prevent saving
-  // a redundant ID property with the entity.
-  delete entity.id;
+function update_one(id, entity) {
+  const key = datastore.key([COMPUTER_KIND, parseInt(id, 10)]);
 
   return datastore
     .update({ key: key, data: entity })

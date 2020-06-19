@@ -7,9 +7,7 @@ const { PERIPHERAL_KIND } = require("../config");
 function get_count() {
   const q = datastore.createQuery(PERIPHERAL_KIND);
 
-  return datastore.runQuery(q).then((data) => {
-    return data[0].length;
-  });
+  return datastore.runQuery(q).then((data) => data[0].length);
 }
 
 function get_all(req) {
@@ -20,11 +18,11 @@ function get_all(req) {
     q.start(req.query.cursor);
   }
 
-  return datastore.runQuery(q).then(async (entities) => {
-    results.items = entities[0].map(ds.fromDatastore);
+  return datastore.runQuery(q).then(async (data) => {
+    results.items = data[0].map(ds.fromDatastore);
 
-    if (entities[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
-      results.next = entities[1].endCursor;
+    if (data[1].moreResults !== ds.Datastore.NO_MORE_RESULTS) {
+      results.next = data[1].endCursor;
     }
 
     results.total_records = await get_count();
@@ -41,6 +39,7 @@ function get_by_property(propKey, propValue) {
     : (value = propValue);
 
   const q = datastore.createQuery(PERIPHERAL_KIND).filter(propKey, "=", value);
+
   return datastore.runQuery(q).then((data) => {
     return data[0]
       ? data[0].map(ds.fromDatastore)
@@ -49,6 +48,7 @@ function get_by_property(propKey, propValue) {
 }
 
 function post_one(manufacturer, type, serial_number) {
+  //TODO: Take entity object instead of parameters
   const key = datastore.key(PERIPHERAL_KIND);
   const entity = { manufacturer, type, serial_number };
   return datastore.save({ key: key, data: entity }).then(() => {
@@ -58,6 +58,7 @@ function post_one(manufacturer, type, serial_number) {
 }
 
 function update_one(id, manufacturer, type, serial_number, computer) {
+  //TODO: Take entity object instead of parameters
   const key = datastore.key([PERIPHERAL_KIND, parseInt(id, 10)]);
   const entity = { manufacturer, type, serial_number, computer };
 
@@ -66,7 +67,7 @@ function update_one(id, manufacturer, type, serial_number, computer) {
   return datastore
     .update({ key: key, data: entity })
     .then(() => {
-      entity.id = key.id;
+      entity.id = key.id.toString();
       return entity;
     })
     .catch((err) => {
@@ -87,7 +88,6 @@ async function delete_one(id) {
 /* ------------- End Model Functions ------------- */
 
 module.exports = {
-  get_count,
   get_all,
   get_by_property,
   post_one,
