@@ -96,22 +96,6 @@ router.post("/", checkJwt, (req, res) => {
     res.status(415).send("Server only accepts application/json data");
   } else if (!accepts) {
     res.status(406).send("Not Acceptable");
-  } else if (
-    ["id", "self"].some((key) => Object.keys(req.body).includes(key))
-  ) {
-    res.status(400).json({
-      Error:
-        "The request object attempted to specify one or more idempotent attributes",
-    });
-  } else if (
-    !["manufacturer", "model", "serial_number"].every((key) =>
-      Object.keys(req.body).includes(key)
-    )
-  ) {
-    res.status(400).json({
-      Error:
-        "The request object is missing at least one of the required attributes",
-    });
   } else {
     const entity = (({ manufacturer, model, serial_number }) => ({
       manufacturer,
@@ -125,7 +109,7 @@ router.post("/", checkJwt, (req, res) => {
         entity.id
       }`;
 
-      // Append an empty array rather than querying for related non-user entities,
+      // Append an empty array rather than querying for related entities,
       // since this relationship can't exist yet.
       entity.peripherals = [];
 
@@ -144,21 +128,6 @@ router.patch("/:id", checkJwt, (req, res) => {
     res.status(415).send("Server only accepts application/json data");
   } else if (!accepts) {
     res.status(406).send("Not Acceptable");
-  } else if (
-    ["id", "self"].some((key) => Object.keys(req.body).includes(key))
-  ) {
-    res.status(400).json({
-      Error:
-        "The request object attempted to specify one or more idempotent attributes",
-    });
-  } else if (
-    !["manufacturer", "model", "serial_number"].some((key) =>
-      Object.keys(req.body).includes(key)
-    )
-  ) {
-    res.status(400).json({
-      Error: "The request object contains no modifiable attribute",
-    });
   } else {
     computers.get_by_property(req, "__key__", req.params.id).then((data) => {
       if (!data.items || data.items.length !== 1) {
@@ -212,22 +181,6 @@ router.put("/:id", checkJwt, (req, res) => {
     res.status(415).send("Server only accepts application/json data");
   } else if (!accepts) {
     res.status(406).send("Not Acceptable");
-  } else if (
-    !["manufacturer", "model", "serial_number"].every((key) =>
-      Object.keys(req.body).includes(key)
-    )
-  ) {
-    res.status(400).json({
-      Error:
-        "The request object is missing at least one of the required attributes",
-    });
-  } else if (
-    ["id", "self"].some((key) => Object.keys(req.body).includes(key))
-  ) {
-    res.status(400).json({
-      Error:
-        "The request object attempted to specify one or more idempotent attributes",
-    });
   } else {
     computers.get_by_property(req, "__key__", req.params.id).then((data) => {
       if (!data.items || data.items.length !== 1) {
@@ -276,7 +229,7 @@ router.put("/:computer_id/peripherals/:peripheral_id", checkJwt, (req, res) => {
   const forbiddenError = {
     Error: "The specified peripheral could not be assigned to this computer",
   };
-  //TODO: Send response?
+
   if (!accepts) {
     res.status(406).send("Not Acceptable");
   } else {
@@ -316,7 +269,7 @@ router.put("/:computer_id/peripherals/:peripheral_id", checkJwt, (req, res) => {
 
                 peripherals
                   .update_one(child_data[0].id, updatedEntity)
-                  .then(() => res.status(204).end()); // TODO: Provide response?
+                  .then(() => res.status(204).end());
               }
             });
         }
@@ -328,7 +281,6 @@ router.delete(
   "/:computer_id/peripherals/:peripheral_id",
   checkJwt,
   (req, res) => {
-    //TODO: Send response?
     const accepts = req.accepts("application/json");
     const forbiddenError = {
       Error:
@@ -373,7 +325,7 @@ router.delete(
                       res.status(403).json(forbiddenError)
                     : peripherals
                         .update_one(child_data[0].id, updatedEntity)
-                        .then(() => res.status(204).end()); // TODO: Provide response?
+                        .then(() => res.status(204).end());
                 }
               });
           }
@@ -403,15 +355,18 @@ router.delete("/:id", checkJwt, async (req, res) => {
 
       computers.delete_one(req.params.id).then((data) => {
         if (data.Error) {
+          // Set the status code to 403 if the resource could not be deleted.
           res.status(403).end();
         } else {
           res.status(204).end();
         }
       });
     } else {
+      // Set the status code to 403 if a protected resource does not belong to the current user.
       res.status(403).end();
     }
   } else {
+    // Set the status code to 403 when attempting to unassign a nonexistent resource.
     res.status(403).end();
   }
 });
