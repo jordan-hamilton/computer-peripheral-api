@@ -119,7 +119,7 @@ router.patch("/:id", (req, res) => {
   } else if (!accepts) {
     res.status(406).send("Not Acceptable");
   } else {
-    peripherals.get_by_property(req, "__key__", req.params.id).then((data) => {
+    peripherals.get_by_property("__key__", req.params.id).then((data) => {
       if (data.Error || data.length !== 1) {
         // Set the status code to 404 if an unprotected resource was not found.
         res.status(404).end();
@@ -169,7 +169,7 @@ router.put("/:id", (req, res) => {
   } else if (!accepts) {
     res.status(406).send("Not Acceptable");
   } else {
-    peripherals.get_by_property(req, "__key__", req.params.id).then((data) => {
+    peripherals.get_by_property("__key__", req.params.id).then((data) => {
       if (data.Error || data.length !== 1) {
         // Set the status code to 404 if an unprotected resource was not found.
         res.status(404).end();
