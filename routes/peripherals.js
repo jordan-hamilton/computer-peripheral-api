@@ -49,50 +49,165 @@ router.get("/", (req, res) => {
 });
 
 router.get("/:id", (req, res) => {
-  peripherals.get_by_property("__key__", req.params.id).then(async (entity) => {
-    if (entity.Error || entity.length !== 1) {
-      res
-        .status(404)
-        .json({ Error: "No peripheral with this peripheral_id exists" });
-    } else {
-      entity[0].self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
-        entity[0].id
-      }`;
+  const accepts = req.accepts("application/json");
 
-      if (entity[0].computer) {
-        const parent = await computers.get_by_property(
-          req,
-          "__key__",
-          entity[0].computer
-        );
-        if (parent.items && parent.items.length === 1) {
-          entity[0].computer = (({ id }) => ({
-            id,
-            self: `${req.protocol}://${req.get("host")}${COMPUTERS_PATH}/${id}`,
-          }))(parent.items[0]);
+  if (!accepts) {
+    res.status(406).send("Not Acceptable");
+  } else {
+    peripherals.get_by_property("__key__", req.params.id).then(async (data) => {
+      if (data.Error || data.length !== 1) {
+        // Set the status code to 404 if an unprotected resource was not found.
+        res
+          .status(404)
+          .json({ Error: "No peripheral with this peripheral_id exists" });
+      } else {
+        const entity = data[0];
+        entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+          entity.id
+        }`;
+
+        if (entity.computer) {
+          const parent = await computers.get_by_property(
+            req,
+            "__key__",
+            entity.computer
+          );
+          if (parent.items && parent.items.length === 1) {
+            entity.computer = (({ id }) => ({
+              id,
+              self: `${req.protocol}://${req.get(
+                "host"
+              )}${COMPUTERS_PATH}/${id}`,
+            }))(parent.items[0]);
+          }
         }
-      }
 
-      res.status(200).json(entity[0]);
-    }
-  });
+        res.status(200).json(entity);
+      }
+    });
+  }
 });
 
 router.post("/", (req, res, next) => {
   const accepts = req.accepts("application/json");
 
-  const entity = (({ manufacturer, type, serial_number }) => ({
-    manufacturer,
-    type,
-    serial_number,
-  }))(req.body);
+  if (req.get("Content-Type") !== "application/json") {
+    res.status(415).send("Server only accepts application/json data");
+  } else if (!accepts) {
+    res.status(406).send("Not Acceptable");
+  } else {
+    const entity = (({ manufacturer, type, serial_number }) => ({
+      manufacturer,
+      type,
+      serial_number,
+    }))(req.body);
 
-  peripherals.post_one(entity).then((entity) => {
-    entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
-      entity.id
-    }`;
-    res.status(201).json(entity);
-  });
+    peripherals.post_one(entity).then((entity) => {
+      entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+        entity.id
+      }`;
+      res.status(201).json(entity);
+    });
+  }
+});
+
+router.patch("/:id", (req, res) => {
+  const accepts = req.accepts("application/json");
+
+  if (req.get("Content-Type") !== "application/json") {
+    res.status(415).send("Server only accepts application/json data");
+  } else if (!accepts) {
+    res.status(406).send("Not Acceptable");
+  } else {
+    peripherals.get_by_property(req, "__key__", req.params.id).then((data) => {
+      if (data.Error || data.length !== 1) {
+        // Set the status code to 404 if an unprotected resource was not found.
+        res.status(404).end();
+      } else {
+        const originalEntity = data[0];
+        const updatedEntity = {
+          manufacturer: req.body.manufacturer || originalEntity.manufacturer,
+          type: req.body.type || originalEntity.type,
+          serial_number: req.body.serial_number || originalEntity.serial_number,
+        };
+
+        peripherals
+          .update_one(req.params.id, updatedEntity)
+          .then(async (entity) => {
+            entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+              entity.id
+            }`;
+
+            if (entity.computer) {
+              const parent = await computers.get_by_property(
+                "__key__",
+                entity.computer
+              );
+
+              if (parent.items && parent.items.length === 1) {
+                entity.computer = (({ id }) => ({
+                  id,
+                  self: `${req.protocol}://${req.get(
+                    "host"
+                  )}${COMPUTERS_PATH}/${id}`,
+                }))(parent.items[0]);
+              }
+            }
+
+            res.status(200).json(entity);
+          });
+      }
+    });
+  }
+});
+
+router.put("/:id", (req, res) => {
+  const accepts = req.accepts("application/json");
+
+  if (req.get("Content-Type") !== "application/json") {
+    res.status(415).send("Server only accepts application/json data");
+  } else if (!accepts) {
+    res.status(406).send("Not Acceptable");
+  } else {
+    peripherals.get_by_property(req, "__key__", req.params.id).then((data) => {
+      if (data.Error || data.length !== 1) {
+        // Set the status code to 404 if an unprotected resource was not found.
+        res.status(404).end();
+      } else {
+        const updatedEntity = (({ manufacturer, type, serial_number }) => ({
+          manufacturer,
+          type,
+          serial_number,
+        }))(req.body);
+
+        peripherals
+          .update_one(req.params.id, updatedEntity)
+          .then(async (entity) => {
+            entity.self = `${req.protocol}://${req.get("host")}${req.baseUrl}/${
+              entity.id
+            }`;
+
+            if (entity.computer) {
+              const parent = await computers.get_by_property(
+                "__key__",
+                entity.computer
+              );
+
+              if (parent.items && parent.items.length === 1) {
+                entity.computer = (({ id }) => ({
+                  id,
+                  self: `${req.protocol}://${req.get(
+                    "host"
+                  )}${COMPUTERS_PATH}/${id}`,
+                }))(parent.items[0]);
+              }
+            }
+
+            res.status(200).json(entity);
+          });
+      }
+    });
+  }
 });
 
 router.delete("/:id", (req, res) => {
@@ -103,6 +218,16 @@ router.delete("/:id", (req, res) => {
       res.status(204).end();
     }
   });
+});
+
+router.all("/", (req, res) => {
+  res.set("Allow", "GET, POST");
+  res.status(405).end();
+});
+
+router.all("/:id", (req, res) => {
+  res.set("Allow", "GET, PATCH, PUT, DELETE");
+  res.status(405).end();
 });
 /* ------------- End Controller Functions ------------- */
 
