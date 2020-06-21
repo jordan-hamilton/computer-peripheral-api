@@ -122,7 +122,9 @@ router.patch("/:id", (req, res) => {
     peripherals.get_by_property("__key__", req.params.id).then((data) => {
       if (data.Error || data.length !== 1) {
         // Set the status code to 404 if an unprotected resource was not found.
-        res.status(404).end();
+        res
+          .status(404)
+          .json({ Error: "No peripheral with this peripheral_id exists" });
       } else {
         const originalEntity = data[0];
         const updatedEntity = {
@@ -172,7 +174,9 @@ router.put("/:id", (req, res) => {
     peripherals.get_by_property("__key__", req.params.id).then((data) => {
       if (data.Error || data.length !== 1) {
         // Set the status code to 404 if an unprotected resource was not found.
-        res.status(404).end();
+        res
+          .status(404)
+          .json({ Error: "No peripheral with this peripheral_id exists" });
       } else {
         const updatedEntity = (({ manufacturer, type, serial_number }) => ({
           manufacturer,
