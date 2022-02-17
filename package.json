@@ -10,7 +10,7 @@
     "@google-cloud/datastore": "6.6.2",
     "axios": "0.26.0",
     "bulma": "0.9.3",
-    "express": "4.17.2",
+    "express": "4.17.3",
     "express-jwt": "6.1.0",
     "express-session": "1.17.2",
     "jwks-rsa": "2.0.5",
