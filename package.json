@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@google-cloud/datastore": "8.2.2",
-    "axios": "1.6.0",
+    "axios": "1.6.2",
     "bulma": "0.9.4",
     "express": "4.18.2",
     "express-jwt": "8.4.1",
