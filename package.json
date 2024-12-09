@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@google-cloud/datastore": "8.5.0",
+    "@google-cloud/datastore": "8.7.0",
     "axios": "1.7.4",
     "bulma": "0.9.4",
     "express": "4.21.2",
